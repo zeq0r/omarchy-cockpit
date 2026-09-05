@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "zeq0r.cockpit",
+  "name": "Cockpit",
+  "version": "0.1.0-alpha.1",
+  "author": "Danubii (zeq0r)",
+  "license": "MIT",
+  "description": "Save and preview Dwindle layouts, then restore windows and workspaces. Experimental alpha.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Cockpit",
+    "category": "Productivity",
+    "allowMultiple": false,
+    "defaultSection": "left"
+  }
+}
