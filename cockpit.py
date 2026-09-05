@@ -46,7 +46,7 @@ def clients():
 
 def path_for(name):
     if not re.fullmatch(r'[\w -]{1,64}', name, re.UNICODE):
-        raise ValueError('Navn: 1–64 bogstaver, tal, mellemrum, bindestreg eller underscore.')
+        raise ValueError('Name: 1–64 letters, numbers, spaces, hyphens or underscores.')
     return DATA / (name + '.json')
 
 
@@ -65,7 +65,7 @@ def write(name, value):
 def read(name):
     value = json.loads(path_for(name).read_text())
     if value.get('schema') != 1:
-        raise ValueError('Ukendt snapshot-version')
+        raise ValueError('Unknown snapshot version')
     return value
 
 
@@ -82,7 +82,7 @@ def infer_tree(windows):
             edge = max(w['at'][axis] + w['size'][axis] for w in left)
             if edge <= min(w['at'][axis] for w in right):
                 return {'axis': axis, 'first': infer_tree(left), 'second': infer_tree(right)}
-    raise ValueError('Vinduerne danner ikke et understøttet Dwindle-træ (overlap/grupper/fullscreen).')
+    raise ValueError('Windows do not form a supported Dwindle tree (overlap/groups/fullscreen).')
 
 
 def first_leaf(tree):
@@ -116,7 +116,7 @@ def recipe(c, slot):
 def capture(name, workspace=None):
     selected = [c for c in clients() if (workspace is None and not c['class'].startswith('cockpit.test.')) or (workspace is not None and c['workspace']['name'] == str(workspace))]
     if not selected:
-        raise ValueError('Ingen vinduer at gemme; det eksisterende snapshot bevares.')
+        raise ValueError('No windows to save; the existing snapshot is preserved.')
     monitors = hypr('monitors', json_output=True)
     by_id = {m['id']: m['name'] for m in monitors}
     windows = []
@@ -139,7 +139,7 @@ def match_windows(snapshot, live):
         if not exact:
             exact = [c for c in candidates if c['class'] == w['restore_class'] and w['restore_class'].startswith('cockpit.')]
         if len(exact) > 1:
-            raise ValueError('Flere mulige vinduer for ' + w['class'] + '. Luk dubletter eller brug et tomt workspace efter login.')
+            raise ValueError('Multiple matching windows for ' + w['class'] + '. Close duplicates or use an empty workspace after login.')
         if exact:
             matches[w['slot']] = exact[0]['address']
             used.add(exact[0]['address'])
@@ -152,7 +152,7 @@ def match_windows(snapshot, live):
         if len(same_title) == 1 and sum(s['title'] == w['title'] for s in other_slots) == 1:
             candidates = same_title
         elif candidates and (len(candidates) > 1 or len(other_slots) > 1):
-            raise ValueError('Tvetydig identitet for ' + w['class'] + '. Flere gemte eller åbne vinduer matcher.')
+            raise ValueError('Ambiguous window identity for ' + w['class'] + '. Multiple saved or open windows match.')
         if candidates:
             matches[w['slot']] = candidates[0]['address']
             used.add(candidates[0]['address'])
@@ -161,30 +161,30 @@ def match_windows(snapshot, live):
 
 def prepare(snapshot):
     if snapshot['layout'] != 'dwindle' or hypr('getoption', 'general:layout', json_output=True).get('str') != 'dwindle':
-        raise ValueError('Prototypen gendanner kun Dwindle-layout.')
+        raise ValueError('This alpha only restores Dwindle layouts.')
     if not hypr('getoption', 'dwindle:preserve_split', json_output=True).get('bool'):
-        raise ValueError('Dwindle preserve_split skal være aktiveret.')
+        raise ValueError('Dwindle preserve_split must be enabled.')
     current_monitors = {m['name']: m for m in hypr('monitors', json_output=True)}
     saved_monitors = {m['name']: m for m in snapshot['monitors']}
     for w in snapshot['windows']:
         if w['fullscreen'] or w['grouped'] or w['pinned'] or w['workspace'].startswith('special:'):
-            raise ValueError('Fullscreen, grupper, pinned og special-workspaces understøttes endnu ikke. Slå dem fra og gem igen.')
+            raise ValueError('Fullscreen, groups, pinned windows and special workspaces are not supported yet. Disable them and save again.')
         old, new = saved_monitors[w['monitor']], current_monitors.get(w['monitor'])
         if not new or any(old[k] != new[k] for k in ('width', 'height', 'scale', 'transform', 'reserved')):
-            raise ValueError('Tilslut samme skærme med samme opløsning, skalering og panelplads som ved gemning.')
+            raise ValueError('Connect the same monitors with the saved resolution, scale and reserved panel space.')
         # Work with coordinates translated to the current monitor origin.
         w['at'] = [w['at'][i] + new[k] - old[k] for i, k in enumerate(('x', 'y'))]
     live = clients()
     matches = match_windows(snapshot, live)
     if any(c.get('fullscreen') or c.get('grouped') or c.get('pinned') for c in live if c['address'] in matches.values()):
-        raise ValueError('Slå fullscreen, grupper og pinning fra på de vinduer, der skal gendannes.')
+        raise ValueError('Disable fullscreen, groups and pinning on the windows to restore.')
     target_ws = {w['workspace'] for w in snapshot['windows']}
     extras = [c for c in live if c['workspace']['name'] in target_ws and c['address'] not in matches.values()]
     if extras:
-        raise ValueError('Der er ekstra vinduer på mål-workspace. Flyt dem først; Cockpit lukker dem ikke.')
+        raise ValueError('Extra windows are present on a target workspace. Move them first; Cockpit will not close them.')
     for w in snapshot['windows']:
         if w['slot'] not in matches and (not w['launch'] or not shutil.which(w['launch'][0])):
-            raise ValueError('Mangler startkommando for ' + w['class'] + '. Åbn appen først eller angiv en recipe via CLI.')
+            raise ValueError('Missing launch command for ' + w['class'] + '. Open the app first or configure a recipe through the CLI.')
     groups = collections.defaultdict(list)
     for w in snapshot['windows']:
         if not w['floating']:
@@ -197,11 +197,11 @@ def wait_client(address, floating):
     for _ in range(30):
         c = next((c for c in clients() if c['address'] == address), None)
         if c is None:
-            raise RuntimeError('Et vindue blev lukket under gendannelsen.')
+            raise RuntimeError('A window was closed during restoration.')
         if c['floating'] == floating:
             return
         time.sleep(.05)
-    raise RuntimeError('Hyprland ændrede ikke floating-status.')
+    raise RuntimeError('Hyprland did not change the floating state.')
 
 
 def set_float(address, value):
@@ -214,9 +214,9 @@ def set_float(address, value):
 def restore(name, dry_run=False):
     snapshot = read(name)
     matches, trees = prepare(snapshot)
-    plan = [{'class': w['class'], 'workspace': w['workspace'], 'action': 'genbrug' if w['slot'] in matches else 'start', 'launch': w['launch']} for w in snapshot['windows']]
+    plan = [{'class': w['class'], 'workspace': w['workspace'], 'action': 'reuse' if w['slot'] in matches else 'start', 'launch': w['launch']} for w in snapshot['windows']]
     if dry_run:
-        return {'ok': True, 'plan': plan, 'message': 'Klar: ' + str(len(plan)) + ' vinduer.'}
+        return {'ok': True, 'plan': plan, 'message': 'Ready: ' + str(len(plan)) + ' windows.'}
     original_focus = hypr('activewindow', json_output=True).get('address')
     original_monitors = hypr('monitors', json_output=True)
     if clients():
@@ -236,7 +236,7 @@ def restore(name, dry_run=False):
                     break
                 time.sleep(.1)
             else:
-                raise RuntimeError('Kunne ikke identificere nyt vindue: ' + w['class'])
+                raise RuntimeError('Could not identify the new window: ' + w['class'])
         for w in snapshot['windows']:
             address = matches[w['slot']]
             set_float(address, True)
@@ -279,7 +279,7 @@ def restore(name, dry_run=False):
             delta = max(abs(a-b) for a,b in zip(w['at'] + w['size'], c['at'] + c['size']))
             errors.append({'slot': w['slot'], 'class': w['class'], 'max_pixel_error': delta, 'workspace_ok': c['workspace']['name'] == w['workspace'], 'floating_ok': c['floating'] == w['floating']})
         exact = all(e['max_pixel_error'] <= 2 and e['workspace_ok'] and e['floating_ok'] for e in errors)
-        result = {'ok': exact, 'windows': errors, 'message': ('Gendannet' if exact else 'Delvist gendannet') + ': største afvigelse ' + str(max(e['max_pixel_error'] for e in errors)) + ' px.'}
+        result = {'ok': exact, 'windows': errors, 'message': ('Restored' if exact else 'Partially restored') + ': largest difference ' + str(max(e['max_pixel_error'] for e in errors)) + ' px.'}
         write_report(result)
         return result
     finally:
@@ -326,9 +326,9 @@ def main():
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         if args.command == 'save':
             if args.name in ('before-restore', 'last-restore-report'):
-                raise ValueError('Navnet er reserveret til gendannelse.')
+                raise ValueError('This name is reserved for restoration.')
             value = capture(args.name, args.workspace)
-            result = {'ok': True, 'message': 'Gemt: ' + args.name + ' · ' + str(len(value['windows'])) + ' vinduer', 'snapshot': value}
+            result = {'ok': True, 'message': 'Saved: ' + args.name + ' · ' + str(len(value['windows'])) + ' windows', 'snapshot': value}
         elif args.command == 'restore':
             result = restore(args.name, args.dry_run)
         elif args.command == 'list':
@@ -340,10 +340,10 @@ def main():
             window = next(w for w in value['windows'] if w['slot'] == args.slot)
             argv = args.argv[1:] if args.argv[:1] == ['--'] else args.argv
             if not argv or not shutil.which(argv[0]):
-                raise ValueError('Angiv et eksisterende program og dets argumenter.')
+                raise ValueError('Specify an existing program and its arguments.')
             window['launch'] = argv
             write(args.name, value)
-            result = {'ok': True, 'message': 'Startkommando gemt.'}
+            result = {'ok': True, 'message': 'Launch command saved.'}
         print(json.dumps(result, ensure_ascii=False))
         return 0 if result.get('ok', True) else 2
 

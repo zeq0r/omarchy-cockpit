@@ -12,7 +12,7 @@ Panel {
   property var hostWidget: null
   property var snapshots: []
   property var selected: null
-  property string message: "Gem din opsætning, og tag den med gennem en genstart."
+  property string message: "Save your layout and restore it after a restart."
   property string action: ""
   property bool autoSave: false
   readonly property color foreground: bar ? bar.foreground : Color.foreground
@@ -44,11 +44,11 @@ Panel {
           var name = root.selected ? root.selected.name : ""
           root.selected = root.snapshots.find(function(s) { return s.name === name }) || root.snapshots[0] || null
         } else {
-          root.message = result.message || "Færdig"
+          root.message = result.message || "Done"
           if (result.snapshot) root.selected = result.snapshot
           if (root.action === "save" && result.ok) Qt.callLater(function() { root.run(["list"]) })
         }
-      } catch (e) { root.message = errors.text || "Kunne ikke læse svaret fra Cockpit." }
+      } catch (e) { root.message = errors.text || "Could not read the response from Cockpit." }
     }
   }
   Timer {
@@ -97,7 +97,7 @@ Panel {
         }
         Text {
           width: parent.width
-          text: worker.running ? "Arbejder …" : root.message
+          text: worker.running ? "Working …" : root.message
           textFormat: Text.PlainText
           color: root.foreground
           font.family: Style.font.family
@@ -112,14 +112,14 @@ Panel {
             TextInput {
               id: nameInput
               anchors.fill: parent; anchors.margins: Style.space(8)
-              text: "Mit cockpit"; color: root.foreground
+              text: "My cockpit"; color: root.foreground
               font.family: Style.font.family; font.pixelSize: Style.font.bodySmall
               selectByMouse: true; maximumLength: 64
               onAccepted: { root.run(["save", text.trim()]); keyCatcher.forceActiveFocus() }
               Keys.onEscapePressed: keyCatcher.forceActiveFocus()
             }
           }
-          Button { text: "Gem"; enabled: !worker.running && nameInput.text.trim().length > 0; onClicked: root.run(["save", nameInput.text.trim()]) }
+          Button { text: "Save"; enabled: !worker.running && nameInput.text.trim().length > 0; onClicked: root.run(["save", nameInput.text.trim()]) }
         }
         Flickable {
           width: parent.width
@@ -135,7 +135,7 @@ Panel {
               Button {
                 required property var modelData
                 width: savedList.width
-                text: (root.selected && root.selected.name === modelData.name ? "▸ " : "") + modelData.name + "  ·  " + modelData.windows.length + " vinduer"
+                text: (root.selected && root.selected.name === modelData.name ? "▸ " : "") + modelData.name + "  ·  " + modelData.windows.length + " windows"
                 onClicked: root.selected = modelData
               }
             }
@@ -194,13 +194,13 @@ Panel {
         }
         Row {
           spacing: Style.space(8)
-          Button { text: "Kontrollér"; enabled: root.selected !== null && !worker.running; onClicked: root.run(["restore", root.selected.name, "--dry-run"]) }
-          Button { text: "Gendan"; enabled: root.selected !== null && !worker.running; onClicked: root.run(["restore", root.selected.name]) }
-          Button { text: root.autoSave ? "Auto: til" : "Auto: fra"; onClicked: root.autoSave = !root.autoSave }
+          Button { text: "Check"; enabled: root.selected !== null && !worker.running; onClicked: root.run(["restore", root.selected.name, "--dry-run"]) }
+          Button { text: "Restore"; enabled: root.selected !== null && !worker.running; onClicked: root.run(["restore", root.selected.name]) }
+          Button { text: root.autoSave ? "Auto: on" : "Auto: off"; onClicked: root.autoSave = !root.autoSave }
         }
         Text {
           width: parent.width
-          text: "S gem · C kontrollér · R gendan · ↑↓ vælg · Esc luk\nPrototype · Dwindle · samme skærmopsætning\nAuto gemmer hvert minut, mens pluginet er indlæst.\nVinduer og terminalmapper gemmes; faner og processer gør ikke."
+          text: "S save · C check · R restore · ↑↓ select · Esc close\nAlpha · Dwindle · same monitor setup\nAutosave runs every minute while the plugin is loaded.\nSaves windows and terminal folders, not tabs or processes."
           color: root.foreground; opacity: 0.65
           font.family: Style.font.family; font.pixelSize: Style.font.bodySmall
           wrapMode: Text.WordWrap

@@ -32,7 +32,7 @@ BarWidget {
     anchors.fill: parent
     bar: root.bar
     text: root.vertical ? "▦" : "▦ Cockpit"
-    tooltipText: "Gem og gendan dit layout"
+    tooltipText: "Save and restore your layout"
     onPressed: function(buttonCode) { if (buttonCode === Qt.LeftButton) root.toggle() }
   }
 }

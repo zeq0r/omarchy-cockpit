@@ -1,14 +1,15 @@
 # Omarchy Cockpit · prototype 0.1
 
 Gem en vinduesopsætning og gendan den via en widget i Omarchy Quattro.
+Panelet og backendens beskeder bruger engelsk som standardsprog.
 Bygget til den installerede Hyprland 0.56.2 med Lua-konfiguration og Dwindle.
 Ingen pip-pakker, ekstra shell-proces eller privilegeret installation.
 
 ## Brug
 
-Klik **▦ Cockpit** i venstre side af baren. Navngiv opsætningen og vælg **Gem**.
-Vælg et snapshot for at se et preview af hvert workspace. **Kontrollér** undersøger,
-om det kan gendannes uden at ændre vinduer. **Gendan** starter manglende apps og
+Klik **▦ Cockpit** i venstre side af baren. Navngiv opsætningen og vælg **Save**.
+Vælg et snapshot for at se et preview af hvert workspace. **Check** undersøger,
+om det kan gendannes uden at ændre vinduer. **Restore** starter manglende apps og
 genopbygger opdelingen. Status viser den målte afvigelse bagefter (højst 2 px tæller
 som succes; JSON-rapporten indeholder det faktiske tal).
 

@@ -3,10 +3,10 @@
 Save your window arrangement, preview it in the Omarchy bar, and restore it later.
 Cockpit reconstructs Dwindle splits and measures the resulting window geometry.
 
-**Experimental alpha — `0.1.0-alpha.1`.** Tested on Omarchy Quattro with Hyprland
+**Experimental alpha — `0.1.0-alpha.2`.** Tested on Omarchy Quattro with Hyprland
 0.56.2, Lua configuration, and one monitor. A complete reboot has not been tested;
 the live test closes disposable terminals and restores them as new processes from disk.
-The current interface is in Danish. [Dansk vejledning](README.da.md).
+The interface and backend messages default to English. [Dansk vejledning](README.da.md).
 
 ![Cockpit panel showing a saved three-window layout](preview.png)
 
@@ -35,10 +35,10 @@ handles save/restore operations. Snapshots stay on your computer.
 
 | Control | Action |
 | --- | --- |
-| **Gem** / **S** | Save under a name; Enter saves while editing the name |
+| **Save** / **S** | Save under a name; Enter saves while editing the name |
 | Snapshot list / **↑↓** | Select a snapshot and preview its workspaces |
-| **Kontrollér** / **C** | Check restoration prerequisites without moving windows |
-| **Gendan** / **R** / **Enter** | Restore the selected snapshot |
+| **Check** / **C** | Check restoration prerequisites without moving windows |
+| **Restore** / **R** / **Enter** | Restore the selected snapshot |
 | **Auto** / **A** | Toggle one-minute autosave into ten rotating snapshots |
 | **Esc** | Leave name editing, then close the panel |
 
