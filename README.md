@@ -21,7 +21,9 @@ No pip packages, downloaded runtime dependencies, root access, or network servic
 omarchy plugin add https://github.com/Danubii/omarchy-cockpit --enable
 ```
 
-Click **▦ Cockpit** in the bar. If needed, place it explicitly:
+Click **▦ Cockpit** in the bar. The panel reports loading, checks, restores, and
+errors in its status line; hover a control for a short description. If needed,
+place the widget explicitly:
 
 ```bash
 omarchy plugin enable zeq0r.cockpit --section left
@@ -36,11 +38,15 @@ handles save/restore operations. Snapshots stay on your computer.
 | Control | Action |
 | --- | --- |
 | **Save** / **S** | Save under a name; Enter saves while editing the name |
-| Snapshot list / **↑↓** | Select a snapshot and preview its workspaces |
+| Saved-layout list / **↑↓** | Select a layout and preview its workspaces |
 | **Check** / **C** | Check restoration prerequisites without moving windows |
 | **Restore** / **R** / **Enter** | Restore the selected snapshot |
 | **Auto** / **A** | Toggle one-minute autosave into ten rotating snapshots |
 | **Esc** | Leave name editing, then close the panel |
+
+Controls expose descriptive names to accessibility tools. The selected layout and
+autosave state remain visibly highlighted. Long lists and previews scroll with the
+pointer or touchpad.
 
 Named snapshots survive a restart. **Restoring after login is manual.** Autosave
 only runs while the widget is loaded, defaults to off, and resets on shell restart.

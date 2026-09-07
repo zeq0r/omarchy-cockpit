@@ -32,7 +32,10 @@ BarWidget {
     anchors.fill: parent
     bar: root.bar
     text: root.vertical ? "▦" : "▦ Cockpit"
-    tooltipText: "Save and restore your layout"
+    tooltipText: root.opened ? "Close Cockpit" : "Save, preview, and restore window layouts"
+    Accessible.name: "Cockpit window layouts"
+    Accessible.description: tooltipText
+    Accessible.role: Accessible.Button
     onPressed: function(buttonCode) { if (buttonCode === Qt.LeftButton) root.toggle() }
   }
 }

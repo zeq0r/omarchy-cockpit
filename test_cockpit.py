@@ -1,5 +1,8 @@
 import copy
+import json
 import os
+from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import patch
 import cockpit as c
@@ -61,6 +64,58 @@ class MatchingTests(unittest.TestCase):
         saved['windows'].append({**saved['windows'][0], 'slot': 'b', 'restore_class': 'cockpit.b'})
         with self.assertRaises(ValueError):
             c.match_windows(saved, [{'address': '0x2', 'class': 'foot', 'title': 'shell'}])
+
+
+class PersistenceTests(unittest.TestCase):
+    def setUp(self):
+        self.tempdir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tempdir.cleanup)
+        self.data_patch = patch.object(c, 'DATA', Path(self.tempdir.name) / 'data')
+        self.data_patch.start()
+        self.addCleanup(self.data_patch.stop)
+
+    def test_write_is_atomic_private_and_leaves_no_temporary_file(self):
+        value = {'schema': 1, 'name': 'Work', 'saved_at': '2026-09-07', 'windows': []}
+        c.write('Work', value)
+        path = c.DATA / 'Work.json'
+        self.assertEqual(json.loads(path.read_text(encoding='utf-8')), value)
+        self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(list(c.DATA.glob('.Work.json.*')), [])
+
+    def test_failed_write_preserves_snapshot_and_cleans_up(self):
+        original = {'schema': 1, 'name': 'Work', 'saved_at': 'old', 'windows': []}
+        c.write('Work', original)
+        with patch.object(c.json, 'dump', side_effect=OSError('disk full')):
+            with self.assertRaisesRegex(OSError, 'disk full'):
+                c.write('Work', {'schema': 1})
+        self.assertEqual(c.read('Work'), original)
+        self.assertEqual(list(c.DATA.glob('.Work.json.*')), [])
+
+    def test_write_syncs_file_and_parent_directory(self):
+        real_fsync = c.os.fsync
+        synced = []
+        with patch.object(c.os, 'fsync', side_effect=lambda fd: (synced.append(fd), real_fsync(fd))[1]):
+            c.write('Work', {'schema': 1})
+        self.assertEqual(len(synced), 2)
+
+    def test_write_report_creates_data_directory(self):
+        c.write_report({'ok': False, 'message': 'partial'})
+        path = c.DATA / 'last-restore-report.json'
+        self.assertEqual(json.loads(path.read_text(encoding='utf-8'))['message'], 'partial')
+        self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+
+    def test_read_rejects_non_object_snapshot(self):
+        c.DATA.mkdir(parents=True)
+        (c.DATA / 'bad.json').write_text('[]', encoding='utf-8')
+        with self.assertRaisesRegex(ValueError, 'expected a JSON object'):
+            c.read('bad')
+
+    def test_catalog_skips_malformed_schema_one_entries(self):
+        c.DATA.mkdir(parents=True)
+        (c.DATA / 'missing-date.json').write_text('{"schema": 1}', encoding='utf-8')
+        (c.DATA / 'array.json').write_text('[]', encoding='utf-8')
+        c.write('valid', {'schema': 1, 'name': 'valid', 'saved_at': '2026-09-07'})
+        self.assertEqual([item['name'] for item in c.catalog()], ['valid'])
 
 
 if __name__ == '__main__':

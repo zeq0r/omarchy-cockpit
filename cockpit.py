@@ -10,6 +10,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import uuid
 
@@ -50,20 +51,39 @@ def path_for(name):
     return DATA / (name + '.json')
 
 
-def write(name, value):
+def atomic_json_write(path, value):
     DATA.mkdir(parents=True, exist_ok=True, mode=0o700)
-    path = path_for(name)
-    tmp = path.with_suffix('.tmp')
-    with tmp.open('w', encoding='utf-8') as f:
-        os.chmod(tmp, 0o600)
-        json.dump(value, f, ensure_ascii=False, indent=2)
-        f.flush()
-        os.fsync(f.fileno())
-    tmp.replace(path)
+    tmp = None
+    try:
+        with tempfile.NamedTemporaryFile('w', encoding='utf-8', dir=DATA,
+                                         prefix='.' + path.name + '.', delete=False) as f:
+            tmp = Path(f.name)
+            os.chmod(tmp, 0o600)
+            json.dump(value, f, ensure_ascii=False, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+        directory = os.open(DATA, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
+    finally:
+        if tmp is not None:
+            try:
+                tmp.unlink()
+            except FileNotFoundError:
+                pass
+
+
+def write(name, value):
+    atomic_json_write(path_for(name), value)
 
 
 def read(name):
-    value = json.loads(path_for(name).read_text())
+    value = json.loads(path_for(name).read_text(encoding='utf-8'))
+    if not isinstance(value, dict):
+        raise ValueError('Invalid snapshot: expected a JSON object')
     if value.get('schema') != 1:
         raise ValueError('Unknown snapshot version')
     return value
@@ -296,18 +316,17 @@ def workspace_selector(name):
 
 
 def write_report(result):
-    (DATA / 'last-restore-report.json').write_text(json.dumps(result, indent=2))
-    os.chmod(DATA / 'last-restore-report.json', 0o600)
+    atomic_json_write(DATA / 'last-restore-report.json', result)
 
 
 def catalog():
     result = []
     for path in DATA.glob('*.json'):
         try:
-            value = json.loads(path.read_text())
-            if value.get('schema') == 1:
+            value = json.loads(path.read_text(encoding='utf-8'))
+            if isinstance(value, dict) and value.get('schema') == 1 and isinstance(value.get('saved_at'), str):
                 result.append(value)
-        except (ValueError, OSError):
+        except (ValueError, OSError, TypeError):
             pass
     return sorted(result, key=lambda v: v['saved_at'], reverse=True)
 

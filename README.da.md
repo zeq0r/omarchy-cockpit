@@ -1,13 +1,22 @@
-# Omarchy Cockpit · prototype 0.1
+# Omarchy Cockpit
 
-Gem en vinduesopsætning og gendan den via en widget i Omarchy Quattro.
+Gem en vinduesopsætning, se den i Omarchy-baren, og gendan den senere.
 Panelet og backendens beskeder bruger engelsk som standardsprog.
 Bygget til den installerede Hyprland 0.56.2 med Lua-konfiguration og Dwindle.
 Ingen pip-pakker, ekstra shell-proces eller privilegeret installation.
 
+**Eksperimentel alpha — `0.1.0-alpha.2`.** Samme skærmopsætning kræves ved
+gendannelse, og en fuld systemgenstart er endnu ikke testet.
+
 ## Brug
 
-Klik **▦ Cockpit** i venstre side af baren. Navngiv opsætningen og vælg **Save**.
+Installér via Omarchys plugin-system, og klik derefter **▦ Cockpit** i baren:
+
+```bash
+omarchy plugin add https://github.com/Danubii/omarchy-cockpit --enable
+```
+
+Navngiv opsætningen og vælg **Save**.
 Vælg et snapshot for at se et preview af hvert workspace. **Check** undersøger,
 om det kan gendannes uden at ændre vinduer. **Restore** starter manglende apps og
 genopbygger opdelingen. Status viser den målte afvigelse bagefter (højst 2 px tæller
@@ -16,19 +25,22 @@ som succes; JSON-rapporten indeholder det faktiske tal).
 Tastatur: **S** rediger navn, **Enter** gem under redigering, **↑↓** vælg snapshot,
 **C** kontrollér, **R** eller **Enter** gendan det valgte snapshot, **A** slå auto til/fra,
 **Esc** luk (under navneredigering afslutter første Esc redigeringen).
+Kontrollerne har beskrivende navne til tilgængelighedsværktøjer. Det valgte snapshot
+og auto-status er fremhævet visuelt; lange lister og previews kan rulles med mus eller
+touchpad. Hold markøren over en knap for en kort forklaring.
 
 **Auto** gemmer hvert minut i ti roterende snapshots. Funktionen er kun aktiv,
 mens widgetten er indlæst, og indstillingen nulstilles ved shell-genstart.
 Navngivne snapshots bliver liggende efter genstart. Gendannelse efter login er
 manuel i denne prototype; der er ingen autostart af apps.
 
+Kommandolinjen kan bruges direkte fra standardinstallationen:
+
 ```bash
-bash install.sh
-omarchy-cockpit save "Mit cockpit"
-omarchy-cockpit restore "Mit cockpit" --dry-run
-omarchy-cockpit restore "Mit cockpit"
-omarchy-cockpit list
-omarchy-shell shell summon zeq0r.cockpit '{}'
+python3 ~/.config/omarchy/plugins/zeq0r.cockpit/cockpit.py save "Mit cockpit"
+python3 ~/.config/omarchy/plugins/zeq0r.cockpit/cockpit.py restore "Mit cockpit" --dry-run
+python3 ~/.config/omarchy/plugins/zeq0r.cockpit/cockpit.py restore "Mit cockpit"
+python3 ~/.config/omarchy/plugins/zeq0r.cockpit/cockpit.py list
 ```
 
 Snapshots: `~/.local/share/omarchy-cockpit/` (private JSON-filer).
