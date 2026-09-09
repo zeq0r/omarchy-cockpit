@@ -3,7 +3,7 @@
 Save your window arrangement, preview it in the Omarchy bar, and restore it later.
 Cockpit reconstructs Dwindle splits and measures the resulting window geometry.
 
-**Experimental alpha — `0.1.0-alpha.2`.** Tested on Omarchy Quattro with Hyprland
+**Experimental alpha — `0.1.0-alpha.3`.** Tested on Omarchy Quattro with Hyprland
 0.56.2, Lua configuration, and one monitor. A complete reboot has not been tested;
 the live test closes disposable terminals and restores them as new processes from disk.
 The interface and backend messages default to English. [Dansk vejledning](README.da.md).

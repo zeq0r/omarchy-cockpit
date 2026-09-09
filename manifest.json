@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "zeq0r.cockpit",
   "name": "Cockpit",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "author": "Danubii (zeq0r)",
   "license": "MIT",
   "description": "Save and preview Dwindle layouts, then restore windows and workspaces. Experimental alpha.",

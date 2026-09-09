@@ -5,7 +5,7 @@ Panelet og backendens beskeder bruger engelsk som standardsprog.
 Bygget til den installerede Hyprland 0.56.2 med Lua-konfiguration og Dwindle.
 Ingen pip-pakker, ekstra shell-proces eller privilegeret installation.
 
-**Eksperimentel alpha — `0.1.0-alpha.2`.** Samme skærmopsætning kræves ved
+**Eksperimentel alpha — `0.1.0-alpha.3`.** Samme skærmopsætning kræves ved
 gendannelse, og en fuld systemgenstart er endnu ikke testet.
 
 ## Brug
