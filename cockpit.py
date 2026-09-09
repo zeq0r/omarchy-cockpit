@@ -161,25 +161,32 @@ def match_windows(snapshot, live):
         exact = [c for c in candidates if same_session and c['address'] == w['address'] and c['pid'] == w['pid'] and c.get('stableId') == w.get('stableId')]
         if not exact:
             exact = [c for c in candidates if c['class'] == w['restore_class'] and w['restore_class'].startswith('cockpit.')]
-        if len(exact) > 1:
-            raise ValueError('Multiple matching windows for ' + w['class'] + '. Close duplicates or use an empty workspace after login.')
         if exact:
-            matches[w['slot']] = exact[0]['address']
-            used.add(exact[0]['address'])
+            chosen = min(exact, key=lambda c: window_match_score(w, c))
+            matches[w['slot']] = chosen['address']
+            used.add(chosen['address'])
+    # Allocate generic same-class windows globally so snapshot order cannot let a
+    # weak match steal a much better workspace/title/geometry match.
+    pairs = []
     for w in snapshot['windows']:
-        if w['slot'] in matches:
-            continue
-        candidates = [c for c in live if c['address'] not in used and c['class'] in (w['class'], w['restore_class'])]
-        same_title = [c for c in candidates if c['title'] == w['title']]
-        other_slots = [s for s in snapshot['windows'] if s['slot'] not in matches and s['class'] == w['class']]
-        if len(same_title) == 1 and sum(s['title'] == w['title'] for s in other_slots) == 1:
-            candidates = same_title
-        elif candidates and (len(candidates) > 1 or len(other_slots) > 1):
-            raise ValueError('Ambiguous window identity for ' + w['class'] + '. Multiple saved or open windows match.')
-        if candidates:
-            matches[w['slot']] = candidates[0]['address']
-            used.add(candidates[0]['address'])
+        if w['slot'] not in matches:
+            for current in live:
+                if current['address'] not in used and current['class'] in (w['class'], w['restore_class']):
+                    pairs.append((window_match_score(w, current), w['slot'], current['address']))
+    for _, slot, address in sorted(pairs):
+        if slot not in matches and address not in used:
+            matches[slot] = address
+            used.add(address)
     return matches
+
+
+def window_match_score(saved, current):
+    """Prefer the most likely slot without rejecting duplicate app classes."""
+    workspace = current.get('workspace', {}).get('name')
+    geometry = sum(abs(a - b) for a, b in zip(saved.get('at', []) + saved.get('size', []),
+                                               current.get('at', []) + current.get('size', [])))
+    return (current.get('title') != saved.get('title'),
+            workspace != saved.get('workspace'), geometry, current['address'])
 
 
 def prepare(snapshot):

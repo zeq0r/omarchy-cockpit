@@ -43,10 +43,13 @@ class MatchingTests(unittest.TestCase):
         with patch.dict(os.environ, HYPRLAND_INSTANCE_SIGNATURE='new'):
             self.assertEqual(c.match_windows(self.saved, live), {})
 
-    def test_ambiguous_terminals_rejected(self):
-        live = [{'address': str(i), 'class': 'foot', 'title': 'shell'} for i in range(2)]
-        with self.assertRaises(ValueError):
-            c.match_windows(self.saved, live)
+    def test_duplicate_app_classes_choose_deterministically(self):
+        self.saved['windows'][0].update(workspace='1', at=[0, 0], size=[100, 100])
+        live = [
+            {'address': 'far', 'class': 'foot', 'title': 'shell', 'workspace': {'name': '2'}, 'at': [500, 0], 'size': [100, 100]},
+            {'address': 'near', 'class': 'foot', 'title': 'shell', 'workspace': {'name': '1'}, 'at': [10, 0], 'size': [100, 100]},
+        ]
+        self.assertEqual(c.match_windows(self.saved, live), {'a': 'near'})
 
     def test_unique_restore_id_survives_title_change(self):
         live = [{'address': '0x2', 'class': 'cockpit.a', 'title': 'changed'}]
@@ -59,11 +62,23 @@ class MatchingTests(unittest.TestCase):
         with patch.dict(os.environ, HYPRLAND_INSTANCE_SIGNATURE='old'):
             self.assertEqual(c.match_windows(saved, live), {'b': '0x2'})
 
-    def test_one_ambiguous_live_window_for_two_saved_slots_rejected(self):
+    def test_one_live_window_for_two_saved_slots_is_reused_once(self):
         saved = copy.deepcopy(self.saved)
         saved['windows'].append({**saved['windows'][0], 'slot': 'b', 'restore_class': 'cockpit.b'})
-        with self.assertRaises(ValueError):
-            c.match_windows(saved, [{'address': '0x2', 'class': 'foot', 'title': 'shell'}])
+        for item in saved['windows']:
+            item['workspace'] = '1'
+        live = [{'address': '0x2', 'class': 'foot', 'title': 'changed',
+                 'workspace': {'name': '2'}}]
+        self.assertEqual(c.match_windows(saved, live), {'a': '0x2'})
+
+    def test_same_class_slots_are_matched_by_unique_workspace(self):
+        saved = copy.deepcopy(self.saved)
+        saved['windows'][0]['workspace'] = '1'
+        saved['windows'].append({**saved['windows'][0], 'slot': 'b', 'workspace': '2',
+                                 'restore_class': 'foot', 'title': 'other'})
+        live = [{'address': '0x2', 'class': 'foot', 'title': 'changed',
+                 'workspace': {'name': '2'}}]
+        self.assertEqual(c.match_windows(saved, live), {'b': '0x2'})
 
 
 class SnapshotScopeTests(unittest.TestCase):
