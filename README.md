@@ -58,7 +58,7 @@ tested live scenarios each measured **0 pixels**; this is not a guarantee for ot
 
 ## What is restored
 
-- Dwindle split structure, window sizes, workspaces, and monitor assignments.
+- Dwindle split structure, window sizes, regular and special workspaces, and monitor assignments.
 - Floating window positions and sizes.
 - Foot windows in their shell's working directory, with a unique restore app ID.
 - A new Chrome/Chromium window when a matching window is missing.
@@ -70,9 +70,9 @@ This is window-layout persistence, not process checkpointing.
 
 The alpha requires the same monitor names, resolution, scale, rotation, and reserved
 panel space. Global monitor positions may change. Multi-monitor support has not
-been live-tested. Fullscreen, grouped, pinned, and special-workspace windows are
-rejected before restoration. Extra windows on target workspaces and ambiguous matches
-are also rejected. Window rules, minimum sizes, or changing focus during restoration
+been live-tested. Fullscreen, grouped, and pinned windows are rejected before
+restoration. Extra windows on target workspaces are also rejected. Duplicate app
+classes are matched by title, workspace, and geometry. Window rules, minimum sizes, or changing focus during restoration
 can prevent an exact result.
 
 Restore never closes existing windows. Before modifying a nonempty session it saves

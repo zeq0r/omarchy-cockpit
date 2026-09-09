@@ -135,9 +135,8 @@ def recipe(c, slot):
 
 def capture(name, workspace=None):
     selected = [c for c in clients()
-                if not c['workspace']['name'].startswith('special:')
-                and ((workspace is None and not c['class'].startswith('cockpit.test.'))
-                     or (workspace is not None and c['workspace']['name'] == str(workspace)))]
+                if ((workspace is None and not c['class'].startswith('cockpit.test.'))
+                    or (workspace is not None and c['workspace']['name'] == str(workspace)))]
     if not selected:
         raise ValueError('No windows to save; the existing snapshot is preserved.')
     monitors = hypr('monitors', json_output=True)
@@ -197,8 +196,8 @@ def prepare(snapshot):
     current_monitors = {m['name']: m for m in hypr('monitors', json_output=True)}
     saved_monitors = {m['name']: m for m in snapshot['monitors']}
     for w in snapshot['windows']:
-        if w['fullscreen'] or w['grouped'] or w['pinned'] or w['workspace'].startswith('special:'):
-            raise ValueError('Fullscreen, groups, pinned windows and special workspaces are not supported yet. Disable them and save again.')
+        if w['fullscreen'] or w['grouped'] or w['pinned']:
+            raise ValueError('Fullscreen, groups and pinned windows are not supported yet. Disable them and save again.')
         old, new = saved_monitors[w['monitor']], current_monitors.get(w['monitor'])
         if not new or any(old[k] != new[k] for k in ('width', 'height', 'scale', 'transform', 'reserved')):
             raise ValueError('Connect the same monitors with the saved resolution, scale and reserved panel space.')
@@ -243,12 +242,6 @@ def set_float(address, value):
 
 def restore(name, dry_run=False):
     snapshot = read(name)
-    # Older snapshots could include scratchpads even though restoration has never
-    # supported special workspaces. Keep their regular workspaces restorable.
-    snapshot['windows'] = [w for w in snapshot['windows']
-                           if not w['workspace'].startswith('special:')]
-    if not snapshot['windows']:
-        raise ValueError('No regular-workspace windows to restore; special workspaces are not supported.')
     matches, trees = prepare(snapshot)
     plan = [{'class': w['class'], 'workspace': w['workspace'], 'action': 'reuse' if w['slot'] in matches else 'start', 'launch': w['launch']} for w in snapshot['windows']]
     if dry_run:
@@ -261,7 +254,8 @@ def restore(name, dry_run=False):
         for w in snapshot['windows']:
             if w['slot'] in matches:
                 continue
-            dispatch('focus', workspace=workspace_selector(w['workspace']))
+            if not w['workspace'].startswith('special:'):
+                dispatch('focus', workspace=workspace_selector(w['workspace']))
             before = {c['address'] for c in clients()}
             subprocess.Popen(w['launch'], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
             deadline = time.monotonic() + 15
@@ -278,6 +272,8 @@ def restore(name, dry_run=False):
             set_float(address, True)
             dispatch('window.move', window='address:' + address, workspace=workspace_selector(w['workspace']), follow=False)
         for ws in {w['workspace'] for w in snapshot['windows']}:
+            if ws.startswith('special:'):
+                continue
             monitor = next(w['monitor'] for w in snapshot['windows'] if w['workspace'] == ws)
             dispatch('workspace.move', workspace=workspace_selector(ws), monitor=monitor)
         def expand(tree):
@@ -328,7 +324,7 @@ def restore(name, dry_run=False):
 
 
 def workspace_selector(name):
-    return name if name.isdecimal() else 'name:' + name
+    return name if name.isdecimal() or name.startswith('special:') else 'name:' + name
 
 
 def write_report(result):

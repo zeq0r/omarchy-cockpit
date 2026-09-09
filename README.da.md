@@ -59,8 +59,9 @@ Gendannelse lukker aldrig eksisterende vinduer.
   Kørende kommandoer, scrollback og shell-tilstand genskabes ikke.
 - Chrome/Chromium: starter et nyt vindue. Faner og browserprofiler gemmes ikke.
 - Andre apps kan genbruges, hvis åbne, eller gives en eksplicit startkommando.
-- Grupper, fullscreen, pinned og special-workspaces afvises inden ændring.
-- Ekstra vinduer på mål-workspace og tvetydige vinduesidentiteter afvises.
+- Grupper, fullscreen og pinned afvises inden ændring; almindelige og special-workspaces gemmes.
+- Ekstra vinduer på mål-workspace afvises. Flere vinduer fra samme app matches efter
+  titel, workspace og geometri.
 - Vinduesregler, minimumsstørrelser eller fokusændringer under arbejdet kan forhindre
   nøjagtig gendannelse. Brug målerapporten; en API-kvittering er ikke en geometrisk test.
 - Flere skærme er implementeret med forudgående kontrol, men kun én skærm er live-testet.
