@@ -134,7 +134,10 @@ def recipe(c, slot):
 
 
 def capture(name, workspace=None):
-    selected = [c for c in clients() if (workspace is None and not c['class'].startswith('cockpit.test.')) or (workspace is not None and c['workspace']['name'] == str(workspace))]
+    selected = [c for c in clients()
+                if not c['workspace']['name'].startswith('special:')
+                and ((workspace is None and not c['class'].startswith('cockpit.test.'))
+                     or (workspace is not None and c['workspace']['name'] == str(workspace)))]
     if not selected:
         raise ValueError('No windows to save; the existing snapshot is preserved.')
     monitors = hypr('monitors', json_output=True)
@@ -233,6 +236,12 @@ def set_float(address, value):
 
 def restore(name, dry_run=False):
     snapshot = read(name)
+    # Older snapshots could include scratchpads even though restoration has never
+    # supported special workspaces. Keep their regular workspaces restorable.
+    snapshot['windows'] = [w for w in snapshot['windows']
+                           if not w['workspace'].startswith('special:')]
+    if not snapshot['windows']:
+        raise ValueError('No regular-workspace windows to restore; special workspaces are not supported.')
     matches, trees = prepare(snapshot)
     plan = [{'class': w['class'], 'workspace': w['workspace'], 'action': 'reuse' if w['slot'] in matches else 'start', 'launch': w['launch']} for w in snapshot['windows']]
     if dry_run:

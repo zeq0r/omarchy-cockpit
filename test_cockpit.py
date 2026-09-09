@@ -66,6 +66,41 @@ class MatchingTests(unittest.TestCase):
             c.match_windows(saved, [{'address': '0x2', 'class': 'foot', 'title': 'shell'}])
 
 
+class SnapshotScopeTests(unittest.TestCase):
+    def test_capture_ignores_special_workspaces(self):
+        regular = {'class': 'foot', 'workspace': {'name': '1'}, 'monitor': 0}
+        special = {'class': 'foot', 'workspace': {'name': 'special:scratchpad'}, 'monitor': 0}
+        details = {'address': '0x1', 'pid': 1, 'title': 'shell', 'at': [0, 0],
+                   'size': [100, 100], 'floating': False, 'fullscreen': 0,
+                   'grouped': [], 'pinned': False, 'stableId': 'one'}
+        monitor = {'id': 0, 'name': 'eDP-1'}
+        with patch.object(c, 'clients', return_value=[{**details, **regular}, {**details, **special}]), \
+             patch.object(c, 'hypr', side_effect=[[monitor], {'str': 'dwindle'}]), \
+             patch.object(c, 'recipe', return_value=(['foot'], 'cockpit.one')), \
+             patch.object(c, 'write') as write:
+            snapshot = c.capture('Work')
+        self.assertEqual([w['workspace'] for w in snapshot['windows']], ['1'])
+        write.assert_called_once()
+
+    def test_restore_ignores_special_workspaces_from_older_snapshot(self):
+        snapshot = {'windows': [
+            {'workspace': 'special:scratchpad', 'slot': 'special'},
+            {'workspace': '2', 'slot': 'regular', 'class': 'foot', 'launch': ['foot']},
+        ]}
+        with patch.object(c, 'read', return_value=snapshot), \
+             patch.object(c, 'prepare', return_value=({'regular': '0x1'}, {})) as prepare:
+            result = c.restore('Work', dry_run=True)
+        self.assertEqual(result['plan'], [{'class': 'foot', 'workspace': '2',
+                                          'action': 'reuse', 'launch': ['foot']}])
+        self.assertEqual([w['slot'] for w in prepare.call_args.args[0]['windows']], ['regular'])
+
+    def test_restore_rejects_snapshot_with_only_special_workspaces(self):
+        snapshot = {'windows': [{'workspace': 'special:scratchpad'}]}
+        with patch.object(c, 'read', return_value=snapshot):
+            with self.assertRaisesRegex(ValueError, 'No regular-workspace windows'):
+                c.restore('Work', dry_run=True)
+
+
 class PersistenceTests(unittest.TestCase):
     def setUp(self):
         self.tempdir = tempfile.TemporaryDirectory()
