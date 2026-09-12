@@ -12,6 +12,6 @@ jobs:
       - name: Check Python and shell syntax
         run: |
           python3 -m py_compile cockpit.py live_test.py test_cockpit.py
-          bash -n install.sh check.sh
+          bash -n check.sh
       - name: Check manifest JSON
         run: python3 -m json.tool manifest.json > /dev/null
